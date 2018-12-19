@@ -67,24 +67,24 @@
         leon:leftIcon="@drawable/about"
         leon:leftText="关于我们"/>
 
-    <com.leon.lib.settingview.LSettingItem
-        android:id="@+id/idea"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:theme="@style/MyCheckBox"
-        leon:leftIcon="@drawable/idea"
-        leon:leftText="消息通知"
-        leon:rightStyle="iconSwitch"/>
+    <!--<com.leon.lib.settingview.LSettingItem-->
+        <!--android:id="@+id/idea"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="60dp"-->
+        <!--android:theme="@style/MyCheckBox"-->
+        <!--leon:leftIcon="@drawable/idea"-->
+        <!--leon:leftText="消息通知"-->
+        <!--leon:rightStyle="iconSwitch"/>-->
 
-    <com.leon.lib.settingview.LSettingItem
-        android:id="@+id/mic"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:theme="@style/MyCheckBox"
-        leon:isShowUnderLine="false"
-        leon:leftIcon="@drawable/mic"
-        leon:leftText="我的语音"
-        leon:rightStyle="iconSwitch"/>
+    <!--<com.leon.lib.settingview.LSettingItem-->
+        <!--android:id="@+id/mic"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="60dp"-->
+        <!--android:theme="@style/MyCheckBox"-->
+        <!--leon:isShowUnderLine="false"-->
+        <!--leon:leftIcon="@drawable/mic"-->
+        <!--leon:leftText="我的语音"-->
+        <!--leon:rightStyle="iconSwitch"/>-->
 
     <com.leon.lib.settingview.LSettingItem
         android:id="@+id/logout"

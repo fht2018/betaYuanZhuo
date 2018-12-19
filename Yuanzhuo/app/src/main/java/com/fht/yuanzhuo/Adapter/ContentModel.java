@@ -16,9 +16,8 @@ public class ContentModel {
     }
 
 
-    public ContentModel(String text, int id) {
+    public ContentModel(String text) {
         this.text = text;
-        this.id = id;
     }
 
     public int getImageView() {

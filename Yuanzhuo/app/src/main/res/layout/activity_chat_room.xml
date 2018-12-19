@@ -114,7 +114,8 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:layout_weight="1">
             <RelativeLayout
                 android:id="@+id/relativeLayout"
                 android:layout_width="match_parent"
@@ -139,6 +140,18 @@
                     android:layout_alignParentTop="true"
                     android:background="@android:color/transparent" />
             </RelativeLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="100dp">
+            <TextView
+                android:id="@+id/subtitles"
+                android:text="实时字幕"
+                android:textSize="20sp"
+                android:textColor="@color/black"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"/>
         </LinearLayout>
 
 

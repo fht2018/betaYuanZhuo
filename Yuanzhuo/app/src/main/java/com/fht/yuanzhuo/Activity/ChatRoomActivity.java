@@ -24,7 +24,12 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.baidu.speech.EventManager;
+import com.baidu.speech.EventManagerFactory;
+import com.baidu.speech.asr.SpeechConstant;
 import com.fht.yuanzhuo.Adapter.ContentAdapter;
 import com.fht.yuanzhuo.Adapter.ContentModel;
 import com.fht.yuanzhuo.R;
@@ -39,6 +44,10 @@ import com.zego.zegoliveroom.entity.ZegoBigRoomMessage;
 import com.zego.zegoliveroom.entity.ZegoConversationMessage;
 import com.zego.zegoliveroom.entity.ZegoRoomMessage;
 import com.zego.zegoliveroom.entity.ZegoUserState;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,20 +58,21 @@ import es.voghdev.pdfviewpager.library.remote.DownloadFile;
 import es.voghdev.pdfviewpager.library.util.FileUtil;
 
 
-public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.Listener,View.OnClickListener,PopupMenu.OnMenuItemClickListener{
+public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.Listener,PopupMenu.OnMenuItemClickListener{
 
     private List<ContentModel> list = new ArrayList<ContentModel>();/*侧边栏列表*/
-    private DrawerLayout drawerLayout;
     private Button meetModel;
     private Button exit;
+    private ImageView leftmenu;
     private ListView listView;
     private ContentAdapter contentAdapter;
-    private ImageView leftMenu;
+    private TextView subtitles;
+    private EventManager eventManager;
+    private com.baidu.speech.EventListener eventListener;
 
 
     /*下面是用户名字符串数组*/
     private List<String> userName = new ArrayList<>();
-//    private  String[] userName={"用户1","用户2","用户3","用户4","用户5"};
 
     int userNumber=userName.size();/*用户数量*/
 
@@ -76,8 +86,9 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
     private Integer PageNum = 0;
     private String sendData;
     private Queue<String> sendDatas = new LinkedList<String>();
-//    private String[] sendDatas = new String[50];
+    private Queue<String> sendZimus = new LinkedList<String>();
     private Boolean sending = false;
+    private Boolean zimusending = false;
     private Integer num = 0;
 
     private ImageView myCanvas;
@@ -104,74 +115,50 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
         Intent intent=getIntent();
         String role    = intent.getStringExtra("role");
         String roomNum = intent.getStringExtra("roomNum");
+        if(role.equals("1")) isMaster=true;
         zegoAudioRoom = ((UserDataApp)getApplication()).getZegoAudioRoom();
+
+        initView();
+
         if(role.equals("1")){
-            isMaster = true;
+            isMaster=true;
             zegoAudioRoom.enableMic(true);
+            exit.setText("解散房间");
+            setSubtitles();
+            meetModel.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    theOnClick(1,v);
+                }
+            });
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view,int position, long id) {
+                    ImageView xiangxia=view.findViewById(R.id.xiangxia);
+                    theOnClick(2,xiangxia);
+                }
+            });
         }else {
             isMaster = false;
+            zegoAudioRoom.enableMic(false);
+            meetModel.setVisibility(View.GONE);
+            exit.setText("退出");
         }
-        zegoAudioRoom.setUserStateUpdate(true);
-        zegoAudioRoom.enableAEC(true);
-        zegoAudioRoom.enableAux(false);
-        zegoAudioRoom.enableAECWhenHeadsetDetected(true);
+
         login(roomNum);
 
 
-
-//        加载pdf和画笔
-        initView();
-        setDownloadListener();
-
-        /*点击弹出侧边栏*/
-        leftMenu.setOnClickListener(new View.OnClickListener() {
+        leftmenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                DrawerLayout drawerLayout = findViewById(R.id.drawerlayout);
                 drawerLayout.openDrawer(Gravity.LEFT);
-
                 disableDraw();
                 initColor();
                 initColorFlag();
             }
         });
 
-
-        if (isMaster) {
-            /*点击模式切换*/
-            meetModel.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    //创建弹出式菜单对象（最低版本11）
-                    PopupMenu popup = new PopupMenu(ChatRoomActivity.this, v);//第二个参数是绑定的那个view
-                    //获取菜单填充器
-                    MenuInflater inflater = popup.getMenuInflater();
-                    //填充菜单
-                    inflater.inflate(R.menu.menu_item, popup.getMenu());
-                    //绑定菜单项的点击事件
-                    popup.setOnMenuItemClickListener(ChatRoomActivity.this);
-                    //显示(这一行代码不要忘记了)
-                    popup.show();
-                }
-            });
-            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view,int position, long id) {
-                    ImageView button6=view.findViewById(R.id.xiangxia);
-                    theOnClick(button6);/*点击后弹出选择主讲和禁言选项*/
-                }
-            });
-        }else {
-            meetModel.setVisibility(View.GONE);
-        }
-
-
-
-        if(role.equals("1")){
-            exit.setText("解散房间");
-        }
-        else{
-            exit.setText("退出");
-        }
         exit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -179,38 +166,31 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
                     zegoAudioRoom.sendRoomMessage(1, 2, "over", new ZegoRoomMessageDelegate() {
                         @Override
                         public void onSendRoomMessage(int i, String s, long l) {
-                            if (hasLogin) {
-                                logout();
-                                adapter.close();
-                            }
+                            logout();
                             Intent intent = new Intent(ChatRoomActivity.this,MainActivity.class);
                             startActivity(intent);
                             finish();
                         }
                     });
                 }else{
-                    if (hasLogin) {
-                        logout();
-                        adapter.close();
-                    }
+                    logout();
                     Intent intent = new Intent(ChatRoomActivity.this,MainActivity.class);
                     startActivity(intent);
                     finish();
                 }
             }
         });
-
-
-
     }
 
 
-    public void login(String roomNum){
+    public void login(final String roomNum){
         zegoAudioRoom.loginRoom(roomNum, new ZegoLoginAudioRoomCallback() {
             @Override
             public void onLoginCompletion(int i) {
                 if(i != 0){
-                    Toast.makeText(ChatRoomActivity.this,"进入房间失败",Toast.LENGTH_SHORT).show();
+                    login(roomNum);
+                }else {
+                    hasLogin = true;
                 }
             }
         });
@@ -226,7 +206,6 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
 
             @Override
             public void onDisconnect(int i, String s) {
-
             }
 
             @Override
@@ -237,7 +216,12 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
             @Override
             public void onUserUpdate(ZegoUserState[] zegoUserStates, int i) {
                 for(int x = 0;x<zegoUserStates.length;x++){
-                    list.add(new ContentModel(zegoUserStates[x].userName,x));
+                    if (zegoUserStates[x].updateFlag == 1){
+                        list.add(new ContentModel(zegoUserStates[x].userName));
+                    }else {
+                        list.remove(new ContentModel(zegoUserStates[x].userName));
+                    }
+
                 }
                 contentAdapter.notifyDataSetChanged();
             }
@@ -257,10 +241,7 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
                         Toast.makeText(ChatRoomActivity.this,"主讲人翻到"+zegoRoomMessages[x].content+"页",Toast.LENGTH_SHORT).show();
                     }else if(zegoRoomMessages[x].messageType == 1 && zegoRoomMessages[x].messageCategory == 2 && zegoRoomMessages[x].content.equals("over")){//解散房间广播
                             Toast.makeText(ChatRoomActivity.this,"主讲人结束了会议",Toast.LENGTH_SHORT).show();
-                            if (hasLogin) {
-                                logout();
-                                adapter.close();
-                            }
+                            logout();
                             Intent intent = new Intent(ChatRoomActivity.this,MainActivity.class);
                             startActivity(intent);
                             finish();
@@ -293,6 +274,8 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
                             canvas.drawLine(fromx,fromy,tox,toy, paint);
                             myCanvas.setImageBitmap(baseBitmaps[movePage]);
                         }
+                    }else  if(zegoRoomMessages[x].messageType == 1 && zegoRoomMessages[x].messageCategory == 3){
+                        subtitles.setText(zegoRoomMessages[x].content);
                     }
                 }
             }
@@ -321,18 +304,27 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
 
     @Override
     public void onBackPressed() {
-        if (hasLogin) {
-            logout();
-            adapter.close();
-        }
+        logout();
         super.onBackPressed();
     }
 
     private void logout() {
-        zegoAudioRoom.enableAux(false);     // 停止伴音
-        zegoAudioRoom.logoutRoom();
-        hasLogin = false;
-        removeCallbacks();
+        if(hasLogin){
+            zegoAudioRoom.enableAux(false);     // 停止伴音
+            zegoAudioRoom.logoutRoom();
+            hasLogin = false;
+            removeCallbacks();
+            if(adapter!= null){
+                adapter.close();
+            }
+            if(isMaster){
+                if(eventManager != null){
+                    eventManager.send(SpeechConstant.ASR_CANCEL, null, null, 0, 0);
+                    eventManager.send(SpeechConstant.ASR_STOP, null, null, 0, 0);
+                    eventManager.unregisterListener(eventListener);
+                }
+            }
+        }
     }
 
     private void removeCallbacks() {
@@ -407,6 +399,43 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
         }
     };
 
+    private void sendZimu(){
+        if(!zimusending){
+            zimusending = true;
+            if(!sendZimus.isEmpty()){
+                try {
+                    JSONObject jsonObject = new JSONObject(sendZimus.element());
+                    subtitles.setText(jsonObject.getString("results_recognition"));
+                    if(jsonObject.getString("result_type").equals("final_result")){
+                        String word = jsonObject.getString("results_recognition");
+                        Log.e("final_result字幕",word);
+                        Boolean issend =  zegoAudioRoom.sendRoomMessage(1, 3,word, new ZegoRoomMessageDelegate() {
+                            @Override
+                            public void onSendRoomMessage(int i, String s, long l) {
+                                sendZimus.poll();
+                                zimusending = false;
+                                sendZimu();
+                            }
+                        });
+                        if(!issend){
+                            zimusending = false;
+                            sendZimu();
+                        }
+                    } else {
+                        sendZimus.poll();
+                        zimusending = false;
+                        sendZimu();
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }else {
+                zimusending = false;
+            }
+        }
+    }
+
     private void sendBiji(){
         if(!sending){
             sending = true;
@@ -414,6 +443,7 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
                 Boolean issend =  zegoAudioRoom.sendRoomMessage(1, 4,sendDatas.element(), new ZegoRoomMessageDelegate() {
                     @Override
                     public void onSendRoomMessage(int i, String s, long l) {
+                        sendDatas.poll();
                         sending = false;
                         sendBiji();
                     }
@@ -421,8 +451,6 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
                 if(!issend){
                     sending = false;
                     sendBiji();
-                }else {
-                    sendDatas.poll();
                 }
             }else {
                     sending = false;
@@ -431,11 +459,11 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
     }
 
     protected void initView() {
+        subtitles = findViewById(R.id.subtitles);
         pdf_root = findViewById(R.id.remote_pdf_root);
         myCanvas = findViewById(R.id.myCanvas);
+        leftmenu = findViewById(R.id.leftmenu);
         listView = findViewById(R.id.left_listview);
-        leftMenu = findViewById(R.id.leftmenu);
-        drawerLayout = findViewById(R.id.drawerlayout);
         meetModel=findViewById(R.id.meetingModel);
         exit=findViewById(R.id.exit);
         initData(userNumber,userName);
@@ -455,6 +483,35 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
                 }
             });
         }
+        setDownloadListener();
+    }
+
+    private void setSubtitles(){
+        eventManager = EventManagerFactory.create(this,"asr");
+
+        eventListener = new com.baidu.speech.EventListener() {
+            @Override
+            public void onEvent(String name, String params, byte [] data, int offset, int length){
+
+                if(name == SpeechConstant.CALLBACK_EVENT_ASR_READY){
+                    Log.i("TAG","start:"+params);
+                    subtitles.setText("实时字幕准备完成，请开始说话");
+                }
+                if(name == SpeechConstant.CALLBACK_EVENT_ASR_BEGIN){
+                    subtitles.setText(name+"\n"+params);
+//                    subtitles.setText("收录到声音，开始转化");
+                }
+                if(name == SpeechConstant.CALLBACK_EVENT_ASR_PARTIAL){
+                    //TODO
+                    sendZimus.offer(params);
+                    sendZimu();
+                }
+            }
+        };
+
+        eventManager.registerListener(eventListener);
+        final String json ="{\"pid\":1537,\"accept-audio-volume\":false,\"vad.endpoint-timeout\":0}";
+        eventManager.send(SpeechConstant.ASR_START,json.toString(),null,0,0);
     }
 
     protected void setDownloadListener() {
@@ -503,7 +560,7 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
 
     @Override
     public void onFailure(Exception e) {
-        Toast.makeText(this,"pdf下载失败,请重新进入房间", Toast.LENGTH_SHORT).show();
+        setDownloadListener();
     }
 
     @Override
@@ -512,26 +569,24 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
 
     @Override
     protected void onDestroy() {
-        if (hasLogin) {
-            logout();
-            adapter.close();
-        }
+        logout();
         super.onDestroy();
     }
 
 
-    @Override
-    public void onClick(View v) {
-
-    }
 
     /*点击用户列表的按钮后弹出菜单*/
-    public void theOnClick(View v){
+    public void theOnClick(int type,View v){
+
         PopupMenu popup = new PopupMenu(ChatRoomActivity.this, v);//第二个参数是绑定的那个view
         //获取菜单填充器
         MenuInflater inflater = popup.getMenuInflater();
         //填充菜单
-        inflater.inflate(R.menu.user_menu, popup.getMenu());
+        if(type == 1){
+            inflater.inflate(R.menu.menu_item, popup.getMenu());
+        }else if(type == 2){
+            inflater.inflate(R.menu.user_menu, popup.getMenu());
+        }
         //绑定菜单项的点击事件
         popup.setOnMenuItemClickListener(ChatRoomActivity.this);
         //显示(这一行代码不要忘记了)
@@ -563,7 +618,7 @@ public class ChatRoomActivity extends AppCompatActivity implements DownloadFile.
     private void initData(int userNumber,List<String> userName) {
         for(int j=0;j<userNumber;j++)
         {
-            list.add(new ContentModel(userName.get(j),j));
+            list.add(new ContentModel(userName.get(j)));
         }
     }
 

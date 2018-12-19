@@ -7,4 +7,5 @@
 
     <string name="yunxufayan">允许发言</string>
     <string name="jinzhifayan">禁止发言</string>
+    <string name="baseurl">http://134.175.124.41:23333/yuanzhuo/</string>
 </resources>

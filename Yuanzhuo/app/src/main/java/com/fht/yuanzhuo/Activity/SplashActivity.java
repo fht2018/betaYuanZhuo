@@ -70,7 +70,7 @@ public class SplashActivity extends Activity {
                 if(isLoginning.isEmpty()){
                     intent = new Intent(SplashActivity.this, LoginActivity.class);
                 }else {
-                    String url = "http://134.175.124.41:23333/yuanzhuo/token/"+ isLoginning;
+                    String url = getString(R.string.baseurl)+"token/"+ isLoginning;
                     OkHttpClient okHttpClient = new OkHttpClient();
                     final Request request = new Request.Builder()
                             .url(url)
@@ -90,7 +90,6 @@ public class SplashActivity extends Activity {
 
                             JSONObject jsonCont = null;
                             try {
-                                Message msg = new Message();
                                 jsonCont = new JSONObject(jsonString);
                                 status = jsonCont.getString("status");
                                 message = jsonCont.getString("message");

@@ -101,7 +101,7 @@ public class RegisterActivity extends AppCompatActivity {
                 String phoneCon = phone.getText().toString();
                 String passCon = password.getText().toString();
                 String repassCon = repassword.getText().toString();
-                String url = "http://134.175.124.41:23333/yuanzhuo/account";
+                String url = getString(R.string.baseurl)+"account";
                 OkHttpClient okHttpClient = new OkHttpClient();
                 RequestBody requestBody = new FormBody.Builder()
                         .add("nickname", nicknameCon)

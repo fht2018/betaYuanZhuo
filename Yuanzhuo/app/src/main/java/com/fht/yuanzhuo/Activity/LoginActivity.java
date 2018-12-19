@@ -1,6 +1,7 @@
 package com.fht.yuanzhuo.Activity;
 
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Handler;
@@ -50,6 +51,7 @@ public class LoginActivity extends Activity {
 
     private String status = new String();
     private String Token  = new String();
+    @SuppressLint("HandlerLeak")
     private Handler uiHandler = new Handler() {
         // 覆写这个方法，接收并处理消息。
         @Override
@@ -92,7 +94,7 @@ public class LoginActivity extends Activity {
             public void onClick(View v) {
                 String phoneContent = phone.getText().toString();
                 String passContent = password.getText().toString();
-                String url = "http://134.175.124.41:23333/yuanzhuo/user";
+                String url = getString(R.string.baseurl)+"user";
                 OkHttpClient okHttpClient = new OkHttpClient();
                 RequestBody requestBody = new FormBody.Builder()
                         .add("phonenum", phoneContent)

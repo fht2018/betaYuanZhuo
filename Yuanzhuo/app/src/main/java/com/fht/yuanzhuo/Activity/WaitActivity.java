@@ -53,6 +53,9 @@ import com.zego.zegoliveroom.entity.ZegoRoomMessage;
 import com.zego.zegoliveroom.entity.ZegoStreamQuality;
 import com.zego.zegoliveroom.entity.ZegoUserState;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -75,10 +78,15 @@ import static android.content.ContentValues.TAG;
 
 public class WaitActivity extends AppCompatActivity {
     private List<String> filename = new ArrayList<>();
+    private List<String> fileurl = new ArrayList<>();
+    private List<String> filenickname = new ArrayList<>();
+
     private MyListAdapter adapter;
     private String roomNum;
     private String role;
     private ListView listfile;
+    private String status = new String();
+    private String message  = new String();
     private static final String TAG = "ChooseFile";
     private static final int FILE_SELECT_CODE = 0;
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 0;
@@ -104,15 +112,53 @@ public class WaitActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_wait);
 
-        ((UserDataApp)getApplication()).initSDK();
+        ((UserDataApp)getApplication()).reInitZegoSDK();
 
         Intent intent=getIntent();
         roomNum  = intent.getStringExtra("roomNum");
         role     = intent.getStringExtra("role");
 
-        if(role .equals("0")){
-            filename.add("doctest.pdf");
-        }
+        String url = getString(R.string.baseurl)+ "filelist?roomnum="+roomNum;
+        OkHttpClient okHttpClient = new OkHttpClient();
+        final Request request = new Request.Builder()
+                .url(url)
+                .addHeader("X-USER-TOKEN",((UserDataApp)getApplication()).getUserToken())
+                .get()//默认就是GET请求，可以不写
+                .build();
+        Call call = okHttpClient.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.d(TAG, "onFailure: ");
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String jsonString = response.body().string();
+                Log.e("body",jsonString);
+
+                JSONObject jsonCont = null;
+                try {
+                    Message msg = new Message();
+                    jsonCont = new JSONObject(jsonString);
+                    status = jsonCont.getString("status");
+                    message = jsonCont.getString("message");
+                    if(status.equals("200")) {
+                        for(int j = 0;j<jsonCont.getJSONObject("data").length();j++){
+                            String url = jsonCont.getJSONObject("data").getJSONObject(String.valueOf(j)).getString("imageurl");
+                            fileurl.add(url);
+                            filename.add(url.substring(url.lastIndexOf('/') + 1));
+                            filenickname.add(jsonCont.getJSONObject("data").getJSONObject(String.valueOf(j)).getString("nickaneme"));
+                        }
+                        msg.what = 200;
+                    }else {
+                        msg.what = 0;
+                    }
+                    uiHandler.sendMessage(msg);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }});
         adapter  = new MyListAdapter();
         listfile = findViewById(R.id.filelist);
         listfile.setAdapter(adapter);
@@ -198,11 +244,12 @@ public class WaitActivity extends AppCompatActivity {
                     RequestBody fileBody = RequestBody.create(MediaType.parse("application/octet-stream"),file);
                     RequestBody requestBody = new MultipartBody.Builder()
                             .setType(MultipartBody.FORM)
+                            .addFormDataPart("roomnum",roomNum)
                             .addFormDataPart("file",file.getName(),fileBody)
                             .build();
                     Request request = new Request.Builder()
                             .addHeader("X-USER-TOKEN",((UserDataApp)getApplication()).getUserToken())
-                            .url("http://134.175.124.41:23333/yuanzhuo/file")
+                            .url(getString(R.string.baseurl)+"/file")
                             .post(requestBody)
                             .build();
                     okHttpClient.newCall(request).enqueue(new Callback() {
@@ -244,12 +291,9 @@ public class WaitActivity extends AppCompatActivity {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             TextView tv = new TextView(WaitActivity.this);
-            String data = filename.get(position);
-//            if(role.equals("0")){
-//                tv.setText( "晚竹:"+ data);
-//            }else {
-//                tv.setText(((UserDataApp)getApplication()).getUsername() +":"+ data);
-//            }
+            String Fname = filename.get(position);
+            String Fnickname = filenickname.get(position);
+            tv.setText(Fnickname+":"+ Fname);
 
             tv.setTextSize(20);
             tv.setGravity(Gravity.CENTER);

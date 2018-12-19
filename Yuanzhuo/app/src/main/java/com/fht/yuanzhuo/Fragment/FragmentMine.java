@@ -42,8 +42,8 @@ public class FragmentMine extends Fragment{
     private LSettingItem download;
     private LSettingItem adven;
     private LSettingItem about;
-    private LSettingItem idea;
-    private LSettingItem mic;
+//    private LSettingItem idea;
+//    private LSettingItem mic;
     private LSettingItem logout;
 
     @Override
@@ -53,8 +53,8 @@ public class FragmentMine extends Fragment{
         download = view.findViewById(R.id.download);
         adven = view.findViewById(R.id.adven);
         about =view.findViewById(R.id.about);
-        idea =view.findViewById(R.id.idea);
-        mic = view.findViewById(R.id.mic);
+//        idea =view.findViewById(R.id.idea);
+//        mic = view.findViewById(R.id.mic);
         logout= view.findViewById(R.id.logout);
 
         update.setmOnLSettingItemClick(new LSettingItem.OnLSettingItemClick() {
@@ -86,23 +86,23 @@ public class FragmentMine extends Fragment{
             }
         });
 
-        idea.setmOnLSettingItemClick(new LSettingItem.OnLSettingItemClick() {
-            @Override
-            public void click(boolean isChecked) {
-                if(isChecked){
-                    Toast.makeText(getActivity(),"选中打开消息",Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        mic.setmOnLSettingItemClick(new LSettingItem.OnLSettingItemClick() {
-            @Override
-            public void click(boolean isChecked) {
-                if(isChecked){
-                    Toast.makeText(getActivity(),"选中打开语音",Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
+//        idea.setmOnLSettingItemClick(new LSettingItem.OnLSettingItemClick() {
+//            @Override
+//            public void click(boolean isChecked) {
+//                if(isChecked){
+//                    Toast.makeText(getActivity(),"选中打开消息",Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//        });
+//
+//        mic.setmOnLSettingItemClick(new LSettingItem.OnLSettingItemClick() {
+//            @Override
+//            public void click(boolean isChecked) {
+//                if(isChecked){
+//                    Toast.makeText(getActivity(),"选中打开语音",Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//        });
 
         logout.setmOnLSettingItemClick(new LSettingItem.OnLSettingItemClick() {
             @Override
